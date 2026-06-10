@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum DepthLevel {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+}
+
+enum Tone {
+  TECHNICAL
+  CASUAL
+  EXECUTIVE
+}
+
+enum ScheduleType {
+  DAILY
+  WEEKLY
+  MANUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  RUNNING
+  FAILED
+}
+
+enum TriggerType {
+  MANUAL
+  SCHEDULED
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum UsedInSection {
+  TOP_STORIES
+  DEEP_DIVE
+  WORTH_WATCHING
+  DISCARDED
+}
+
+// ─── Models ───────────────────────────────────────────────
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String         @unique
+  passwordHash  String?
+  avatarUrl     String?
+  timezone      String         @default("Asia/Kolkata")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("users")
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String
+  topic             String
+  subtopics         String[]
+  depthLevel        DepthLevel         @default(INTERMEDIATE)
+  tone              Tone               @default(CASUAL)
+  pinnedSources     String[]
+  excludedSources   String[]
+  scheduleType      ScheduleType       @default(MANUAL)
+  scheduleDayOfWeek Int?
+  scheduleHour      Int?
+  scheduleMinute    Int?
+  deliveryEmail     String
+  status            SubscriptionStatus @default(ACTIVE)
+  lastRunAt         DateTime?
+  nextRunAt         DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newsletterRuns   NewsletterRun[]
+
+  @@map("subscriptions")
+}
+
+model NewsletterRun {
+  id                  String         @id @default(cuid())
+  subscriptionId      String
+  subjectLine         String         @default("")
+  topStories          Json           @default("[]")
+  deepDive            Json           @default("{}")
+  worthWatching       Json           @default("[]")
+  closingLine         String         @default("")
+  htmlContent         String         @default("")
+  triggerType         TriggerType    @default(MANUAL)
+  status              RunStatus      @default(PENDING)
+  errorMessage        String?
+  deliveryStatus      DeliveryStatus @default(PENDING)
+  deliveryError       String?
+  totalSourcesFound   Int            @default(0)
+  sourcesUsed         Int            @default(0)
+  avgRelevanceScore   Float?
+  queriesGenerated    Json?
+  retryCount          Int            @default(0)
+  createdAt           DateTime       @default(now())
+  completedAt         DateTime?
+
+  subscription        Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  sources             NewsletterSource[]
+
+  @@map("newsletter_runs")
+}
+
+model NewsletterSource {
+  id               String        @id @default(cuid())
+  newsletterRunId  String
+  url              String
+  domain           String
+  title            String
+  snippet          String
+  tavilyScore      Float
+  recencyScore     Float
+  credibilityScore Float
+  finalScore       Float
+  publishedAt      DateTime?
+  usedInSection    UsedInSection
+
+  newsletterRun    NewsletterRun @relation(fields: [newsletterRunId], references: [id], onDelete: Cascade)
+
+  @@map("newsletter_sources")
+}
