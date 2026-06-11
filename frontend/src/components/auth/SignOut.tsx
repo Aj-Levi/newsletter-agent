@@ -15,7 +15,7 @@ const SignOut = () => {
             await signOut({ redirect: false });
             toast.success("Logged out successfully", ToastStyles);
             setTimeout(() => {
-              router.replace("/home");
+              router.replace("/login");
               router.refresh();
             }, 1500);
         } catch(err) {

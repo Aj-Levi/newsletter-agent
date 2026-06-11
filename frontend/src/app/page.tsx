@@ -1,9 +1,12 @@
-import React from 'react'
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/getSession";
 
-const Home = () => {
-  return (
-    <div>Home</div>
-  )
+export default async function Home() {
+  const session = await getSession();
+  
+  if (session?.user) {
+    redirect("/dashboard");
+  } else {
+    redirect("/login");
+  }
 }
-
-export default Home
