@@ -52,7 +52,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     callbacks: {
         // This handles OAuth — creates user in DB if first login
         async signIn({ user, account }) {
-            if (account?.type === "oauth") {
+            if (account?.provider === "google" || account?.provider === "github") {
                 try {
                     const existingUser = await prisma.user.findUnique({
                         where: { email: user.email! }
