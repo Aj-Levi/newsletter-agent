@@ -73,13 +73,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return true
         },
 
-        // Attach user id to JWT token
+        // Retrieve latest user details from database to keep session fresh
         async jwt({ token, user }) {
             if (user) {
                 const dbUser = await prisma.user.findUnique({
                     where: { email: token.email! }
                 })
                 token.id = dbUser?.id
+            }
+            
+            if (token.id) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: token.id as string }
+                })
+                if (dbUser) {
+                    token.name = dbUser.name
+                    token.email = dbUser.email
+                }
             }
             return token
         },
