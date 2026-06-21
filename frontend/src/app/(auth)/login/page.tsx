@@ -1,18 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { FaGoogle, FaGithub } from "react-icons/fa";
 import ShowHidePassword from "@/components/auth/ShowHidePassword";
 import { toast } from "react-toastify";
 import ToastStyles from "@/styles/ToastStyles";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ValidateEmailInput from "@/components/auth/ValidateEmailInput";
 import { signIn } from "next-auth/react";
 
-const Login = () => {
+const LoginFormContent = () => {
   const [ValidEmail, setValidEmail] = useState<boolean>(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "";
+
   return (
     <div className="w-[55%] max-md:w-full flex items-center justify-center md:p-8 ">
       <div className="w-full max-w-md">
@@ -41,7 +44,7 @@ const Login = () => {
                 } else {
                   toast.success("Signed in successfully", ToastStyles);
                   setTimeout(() => {
-                    router.push("/dashboard");
+                    router.push(callbackUrl || "/dashboard");
                   }, 2000);
                 }
               }}
@@ -71,14 +74,14 @@ const Login = () => {
             </div>
 
             <button
-              onClick={() => signIn("google", { prompt: "select_account" })}
+              onClick={() => signIn("google", { callbackUrl: callbackUrl || "/dashboard", prompt: "select_account" })}
               className="flex items-center justify-center w-full btn btn-primary"
             >
               <FaGoogle className="mr-2" />
               <span className="font-medium">Sign in with Google</span>
             </button>
             <button
-              onClick={() => signIn("github")}
+              onClick={() => signIn("github", { callbackUrl: callbackUrl || "/dashboard" })}
               className="flex items-center justify-center w-full btn btn-primary"
             >
               <FaGithub className="mr-2" />
@@ -97,6 +100,18 @@ const Login = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const Login = () => {
+  return (
+    <Suspense fallback={
+      <div className="w-[55%] max-md:w-full flex items-center justify-center md:p-8">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    }>
+      <LoginFormContent />
+    </Suspense>
   );
 };
 
