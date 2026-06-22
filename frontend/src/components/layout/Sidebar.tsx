@@ -60,7 +60,7 @@ const Sidebar = ({ user, onCloseMobile }: SidebarProps) => {
         </div>
         <div>
           <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Newsletter Agent
+            HireLoop
           </span>
           <span className="block text-xs text-base-content/60 font-medium -mt-1">
             Autonomous Insights

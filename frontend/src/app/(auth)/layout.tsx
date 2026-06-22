@@ -22,7 +22,7 @@ const LoginSignUpLayout = async({children}: {children: ReactNode}) => {
       <LoginImage />
 
       <div className="md:hidden flex w-full justify-center items-center text-3xl font-bold underline decoration-4 underline-offset-4">
-        Newsletter Agent
+        HireLoop
       </div>
 
       {/* Form Container */}
