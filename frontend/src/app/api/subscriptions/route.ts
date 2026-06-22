@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateNextRun } from "@/lib/schedule";
 
 // Valid enum value lists
 const DEPTH_LEVELS = ["BEGINNER", "INTERMEDIATE", "EXPERT"];
@@ -141,6 +142,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Fetch user's timezone from DB to calculate correct localized schedule
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { timezone: true },
+    });
+    const timezone = user?.timezone || "Asia/Kolkata";
+
+    // Calculate next run time if schedule is active
+    let nextRunAt: Date | null = null;
+    if (status === "ACTIVE" && scheduleType !== "MANUAL") {
+      nextRunAt = calculateNextRun(
+        scheduleType as any,
+        scheduleType === "WEEKLY" ? Number(scheduleDayOfWeek) : null,
+        parsedHour,
+        parsedMinute,
+        timezone
+      );
+    }
+
     // Create the subscription record
     const subscription = await prisma.subscription.create({
       data: {
@@ -157,6 +177,7 @@ export async function POST(req: NextRequest) {
         scheduleMinute: parsedMinute,
         deliveryEmail: targetEmail.trim().toLowerCase(),
         status: status as any,
+        nextRunAt,
       },
     });
 

@@ -104,7 +104,9 @@ export default async function DashboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-extrabold text-base-content tracking-tight">
-            Welcome back, {session?.user?.name || "there"}!
+            Welcome back&nbsp;
+            <span className="text-primary">{session?.user?.name || "there"}</span>
+            &nbsp;!
           </h2>
           <p className="text-base-content/70 mt-1">
             Here is a snapshot of your automated newsletter agent activities.
@@ -168,7 +170,7 @@ export default async function DashboardPage() {
               <span className="text-xs font-semibold text-base-content/65 uppercase tracking-wider block">
                 Last Agent Run
               </span>
-              <span className="text-2xl font-bold text-base-content block truncate mt-0.5">
+              <span className="text-2xl font-bold text-base-content block mt-0.5">
                 {lastRunTime ? formatDate(lastRunTime) : "Never"}
               </span>
               <span className="text-xs text-base-content/60 font-medium mt-1 inline-block">

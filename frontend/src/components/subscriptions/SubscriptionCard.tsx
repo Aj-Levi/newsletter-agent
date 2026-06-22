@@ -57,6 +57,9 @@ const SubscriptionCard = ({
   };
 
   const getStatusBadge = () => {
+    if (isRunning) {
+      return <span className="badge badge-info badge-sm font-semibold animate-pulse">Running</span>;
+    }
     switch (subscription.status) {
       case "ACTIVE":
         return <span className="badge badge-success badge-sm font-semibold">Active</span>;
@@ -71,7 +74,10 @@ const SubscriptionCard = ({
     }
   };
 
+  const [isRunning, setIsRunning] = useState(subscription.status === "RUNNING");
+
   const handleDuplicate = async () => {
+    if (isRunning || isDuplicating) return;
     setIsDuplicating(true);
     try {
       const response = await fetch(`/api/subscriptions/${subscription.id}/duplicate`, {
@@ -93,8 +99,33 @@ const SubscriptionCard = ({
     }
   };
 
-  const handleRunNow = () => {
-    toast.info("Manual agent runs will be wired up in Week 4 integration!", ToastStyles);
+  const handleRunNow = async () => {
+    if (isRunning || isDuplicating) return;
+    setIsRunning(true);
+    toast.info("Starting agent run... Deduplicating queries and searching web. This takes 10-30s.", {
+      ...ToastStyles,
+      autoClose: 5000,
+    });
+    try {
+      const response = await fetch(`/api/subscriptions/${subscription.id}/trigger`, {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Newsletter compiled and delivered successfully!", ToastStyles);
+        onRefreshList();
+      } else {
+        toast.error(data.error || "Failed to compile newsletter", ToastStyles);
+        onRefreshList();
+      }
+    } catch (error) {
+      console.error("Manual run error:", error);
+      toast.error("Network error while starting run", ToastStyles);
+      onRefreshList();
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -113,8 +144,10 @@ const SubscriptionCard = ({
         {/* Top Header Section */}
         <div>
           <div className="flex justify-between items-start gap-2">
-            <h3 className="card-title text-lg font-bold text-base-content leading-snug line-clamp-1">
-              {subscription.topic}
+            <h3 className="card-title text-lg font-bold text-base-content leading-snug line-clamp-1 hover:text-primary transition-colors">
+              <Link href={`/subscriptions/${subscription.id}`}>
+                {subscription.topic}
+              </Link>
             </h3>
             {getStatusBadge()}
           </div>
@@ -162,18 +195,28 @@ const SubscriptionCard = ({
           {/* Left Action: Run manual trigger */}
           <button
             onClick={handleRunNow}
-            className="btn btn-ghost btn-sm text-primary hover:bg-primary/10 gap-1.5 font-bold px-2"
+            disabled={isRunning || isDuplicating}
+            className="btn btn-ghost btn-sm text-primary hover:bg-primary/10 gap-1.5 font-bold px-2 disabled:opacity-50"
             title="Trigger manual run"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            Run
+            {isRunning ? (
+              <>
+                <span className="loading loading-spinner loading-xs"></span>
+                Running...
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                Run
+              </>
+            )}
           </button>
 
           {/* Right Actions: edit, duplicate, delete */}
           <div className="flex gap-1">
             <button
               onClick={handleDuplicate}
-              disabled={isDuplicating}
+              disabled={isRunning || isDuplicating}
               className="btn btn-ghost btn-sm btn-square hover:bg-base-300 text-base-content/65 hover:text-base-content"
               title="Duplicate subscription"
             >
@@ -183,16 +226,27 @@ const SubscriptionCard = ({
                 <Copy className="w-3.5 h-3.5" />
               )}
             </button>
-            <Link
-              href={`/subscriptions/${subscription.id}/edit`}
-              className="btn btn-ghost btn-sm btn-square hover:bg-base-300 text-base-content/65 hover:text-base-content"
-              title="Edit subscription"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-            </Link>
+            {isRunning || isDuplicating ? (
+              <button
+                disabled
+                className="btn btn-ghost btn-sm btn-square text-base-content/40 cursor-not-allowed opacity-50"
+                title="Edit subscription (disabled during execution)"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <Link
+                href={`/subscriptions/${subscription.id}/edit`}
+                className="btn btn-ghost btn-sm btn-square hover:bg-base-300 text-base-content/65 hover:text-base-content"
+                title="Edit subscription"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </Link>
+            )}
             <button
               onClick={() => onDeleteRequest(subscription.id, subscription.topic)}
-              className="btn btn-ghost btn-sm btn-square hover:bg-error/10 text-error/70 hover:text-error"
+              disabled={isRunning || isDuplicating}
+              className="btn btn-ghost btn-sm btn-square hover:bg-error/10 text-error/70 hover:text-error disabled:opacity-50"
               title="Delete subscription"
             >
               <Trash2 className="w-3.5 h-3.5" />

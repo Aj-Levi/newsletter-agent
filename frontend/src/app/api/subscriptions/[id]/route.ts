@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { calculateNextRun } from "@/lib/schedule";
 
 // Valid enum value lists
 const DEPTH_LEVELS = ["BEGINNER", "INTERMEDIATE", "EXPERT"];
@@ -23,6 +24,13 @@ export async function GET(
 
     const subscription = await prisma.subscription.findUnique({
       where: { id },
+      include: {
+        newsletterRuns: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
     });
 
     if (!subscription || subscription.userId !== session.user.id) {
@@ -194,6 +202,30 @@ export async function PATCH(
       updateData.scheduleHour = null;
       updateData.scheduleMinute = null;
     }
+
+    // Recalculate nextRunAt based on merged values
+    const targetStatus = status !== undefined ? status : existing.status;
+    const targetDayOfWeek = scheduleDayOfWeek !== undefined ? scheduleDayOfWeek : existing.scheduleDayOfWeek;
+    const targetHour = scheduleHour !== undefined ? scheduleHour : existing.scheduleHour;
+    const targetMinute = scheduleMinute !== undefined ? scheduleMinute : existing.scheduleMinute;
+
+    let nextRunAt: Date | null = null;
+    if (targetStatus === "ACTIVE" && targetScheduleType !== "MANUAL") {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { timezone: true },
+      });
+      const timezone = user?.timezone || "Asia/Kolkata";
+      
+      nextRunAt = calculateNextRun(
+        targetScheduleType as any,
+        targetDayOfWeek !== null ? Number(targetDayOfWeek) : null,
+        targetHour !== null ? Number(targetHour) : null,
+        targetMinute !== null ? Number(targetMinute) : null,
+        timezone
+      );
+    }
+    updateData.nextRunAt = nextRunAt;
 
     // Update DB record
     const updated = await prisma.subscription.update({
