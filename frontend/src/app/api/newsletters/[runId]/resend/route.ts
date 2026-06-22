@@ -29,7 +29,7 @@ export async function POST(
       return NextResponse.json({ error: "No compiled content to send" }, { status: 400 });
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY || "re_Qy6DCxmL_AAN6C7HrbhsaQakHppAWB9By";
+    const resendApiKey = process.env.RESEND_API_KEY;
     const resendFromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
